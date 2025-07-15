@@ -1,3 +1,9 @@
-a = 1
+class ABC():
+    pass
 
-print(type(a) == int)
+class BCD(ABC):
+    pass
+
+a = BCD()
+
+print(type(a) == ABC)

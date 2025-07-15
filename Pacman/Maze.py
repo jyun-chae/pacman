@@ -18,11 +18,18 @@ CELL_SIZE = 20
 MAX_X = SCREEN_WIDTH//CELL_SIZE
 MAX_Y = SCREEN_HEIGHT//CELL_SIZE
 
-OBJECTS = [[Pacman, "pacman"],
-           [Ghost, "follow"]
-           ]
-
+BLACK = (0, 0, 0)
+YELLOW = (255, 255, 0)
+WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
+RED = (255, 0, 0)
+PINK = (255, 182, 193)
+CYAN = (0, 255, 255)
+ORANGE = (255, 165, 0)
+
+OBJECTS = [[Pacman, YELLOW, "pacman"],
+           [Blinky, PINK, "follow"]
+           ]
 
 class Maze:
     """미로 클래스"""
@@ -30,13 +37,18 @@ class Maze:
         self.row = 0
         self.col = 0
         self.maze = []
-        self.read_txt('./datas/map.txt')
         self.tot_maze = []
-        self.make_tot_map()
+        
+        # 어쩔수 없이 들어가는 pacman 초기위치값
+        self.p_y = 0
+        self.p_x = 0
         
         # 출력상 가장 밑의 index값
         self.y_idx = 0
         self.x_idx = 0
+        
+        self.read_txt('./datas/map.txt')
+        self.make_tot_map()
     
     def read_txt(self, filename):
         with open(filename, 'r', encoding='utf-8') as file:
@@ -49,8 +61,14 @@ class Maze:
             
         for i in range(self.row):
             for j in range(self.col):
-                if self.maze[i][j] > 3:
-                    self.maze[i][j] = [self.maze[i][j],2]
+                if self.maze[i][j] == 4:
+                    self.p_y = i
+                    self.p_x = j
+                    self.maze[i][j] = [0]
+                else:
+                    self.maze[i][j] = [self.maze[i][j]]
+                if self.maze[i][j][0] > 3:
+                    self.maze[i][j].insert(0,2)
     
     def make_tot_map(self):
         x_cnt = 0
@@ -59,54 +77,55 @@ class Maze:
             x_cnt = 0
             self.tot_maze.append([])
             while (x_cnt <= MAX_X):
-                self.tot_maze[y_cnt].append(self.maze[y_cnt%self.row][x_cnt%self.col])
+                self.tot_maze[y_cnt].append(self.maze[y_cnt%self.row][x_cnt%self.col].copy())
                 x_cnt += 1
             y_cnt += 1
         
         # 맵에 객체 추가
         for i in range(MAX_Y+1):
             for j in range(MAX_X+1):
-                if type(self.tot_maze[i][j]) != int:
+                if len(self.tot_maze[i][j]) > 1:
                     # 나중에 상세값 수정
-                    self.tot_maze[i][j][0] = OBJECTS[self.tot_maze[i][j][0] - 3][0](0, 0, OBJECTS[self.tot_maze[i][j][0] - 3][1])   # 위치 나중에 수정
+                    tmp = self.tot_maze[i][j][1]
+                    self.tot_maze[i][j][1] = OBJECTS[tmp - 4][0](0, 0, OBJECTS[tmp - 4][1], OBJECTS[tmp - 4][2])   # 위치 나중에 수정
+        
+        self.tot_maze[self.p_y][self.p_x] = [Pacman(self.p_y, self.p_x)]
     
     
     def shift_map_x(self):
         self.x_idx += 1
         for i in range(MAX_Y):
-            if self.tot_maze[i][MAX_X] not in [1,2,3]:
-                del self.tot_maze[i][MAX_X]
+            del self.tot_maze[i][MAX_X]
         for i in range(MAX_X):
             self.tot_maze[:][i] = deepcopy(self.tot_maze[:][i+1])
         y_cnt = 0
         while (y_cnt <= MAX_Y):
-            self.tot_maze[y_cnt][MAX_X] = self.maze[(self.y_idx + y_cnt)%self.row][(self.x_idx + MAX_X)%self.col]
+            self.tot_maze[y_cnt][MAX_X] = self.maze[(self.y_idx + y_cnt)%self.row][(self.x_idx + MAX_X)%self.col].copy()
             
     def shift_map_y(self):
         self.y_idx += 1
         for i in range(MAX_X):
-            if self.tot_maze[MAX_Y][i] not in [1,2,3]:
-                del self.tot_maze[MAX_Y][i]
+            del self.tot_maze[MAX_Y][i]
         for i in range(MAX_Y):
             self.tot_maze[i][:] = deepcopy(self.tot_maze[i+1][:])
         x_cnt = 0
         while (x_cnt <= MAX_X):
-            self.tot_maze[MAX_Y][x_cnt] = self.maze[(self.y_idx + MAX_Y)%self.row][(self.x_idx + x_cnt)%self.col]            
+            self.tot_maze[MAX_Y][x_cnt] = self.maze[(self.y_idx + MAX_Y)%self.row][(self.x_idx + x_cnt)%self.col].copy()      
     
-    def draw(self, screen, xgap, ygap):
+    def draw(self, screen, ygap, xgap):
         x_cnt = 0
         y_cnt = 0
         
         while (y_cnt <= MAX_Y):
             x_cnt = 0
             while (x_cnt <= MAX_X):
-                if self.maze[(self.y_idx + y_cnt)%self.row][(self.x_idx + x_cnt)%self.col] == 1:
+                if self.maze[(self.y_idx + y_cnt)%self.row][(self.x_idx + x_cnt)%self.col] == [1]:
                     pygame.draw.rect(screen, BLUE, pygame.Rect(x_cnt*CELL_SIZE + xgap, y_cnt*CELL_SIZE + ygap, CELL_SIZE, CELL_SIZE))
                 x_cnt += 1
             y_cnt += 1
     
     def is_wall(self, row, col):
-        if self.maze[row][col] == 1: return True
+        if self.maze[row][col] == [1]: return True
         else: return False
     
     

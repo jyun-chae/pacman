@@ -15,6 +15,9 @@ SCREEN_HEIGHT = 600
 FPS = 60
 CELL_SIZE = 20
 
+MAX_X = SCREEN_WIDTH//CELL_SIZE
+MAX_Y = SCREEN_HEIGHT//CELL_SIZE
+
 # 색상 정의
 BLACK = (0, 0, 0)
 YELLOW = (255, 255, 0)
@@ -39,16 +42,21 @@ class Game:
         
         # 게임 객체 초기화
         self.maze = Maze()
-        self.pacman = Pacman(CELL_SIZE * 10, CELL_SIZE * 15)
+        self.pacman = self.maze.tot_maze[self.maze.p_y][self.maze.p_x][0]
         self.ghosts = [
-            Blinky(CELL_SIZE * 10, CELL_SIZE * 9),
-            Pinky(CELL_SIZE * 9, CELL_SIZE * 9),
-            Inky(CELL_SIZE * 10, CELL_SIZE * 10),
-            Clyde(CELL_SIZE * 11, CELL_SIZE * 9)
+            Blinky,
+            Pinky,
+            Inky,
+            Clyde
         ]
+        self.dots = Dot(0,0)
+        self.power_dot = PowerPellet(0,0)
         
         self.score = 0
         self.high_score = 0
+        
+        self.ygap = -10
+        self.xgap = -10
     
     def handle_events(self):
         """이벤트 처리"""
@@ -58,13 +66,13 @@ class Game:
             elif event.type == pygame.KEYDOWN:
                 # TODO: 키보드 입력 처리 (방향키로 팩맨 제어)
                 if event.key == pygame.K_UP:
-                    self.pacman.next_direction = Direction.UP
+                    self.pacman.cmd_input(Direction.UP)
                 elif event.key == pygame.K_DOWN:
-                    self.pacman.next_direction = Direction.DOWN
+                    self.pacman.cmd_input(Direction.DOWN)
                 elif event.key == pygame.K_LEFT:
-                    self.pacman.next_direction = Direction.LEFT
+                    self.pacman.cmd_input(Direction.LEFT)
                 elif event.key == pygame.K_RIGHT:
-                    self.pacman.next_direction = Direction.RIGHT
+                    self.pacman.cmd_input(Direction.RIGHT)
     
     def update(self):
         """게임 상태 업데이트"""
@@ -76,13 +84,49 @@ class Game:
             # 4. 점수 업데이트
             # 5. 게임 종료 조건 확인
             
-            self.pacman.update()
+            tot_maze = self.maze.tot_maze
             
-            for ghost in self.ghosts:
-                ghost.update()
+            for i in range(MAX_Y + 1):
+                for j in range(MAX_X + 1):
+                    isthere = [0,0,0,0] # 팩맨, 유령, 점, 파워점
+                    if len(tot_maze[i][j]) == 1 and type(tot_maze[i][j][0]) == int:
+                        continue
+                    k = 0
+                    while (k < len(tot_maze[i][j])):
+                        tmp = 0
+                        if type(tot_maze[i][j][k]) == Pacman:
+                            isthere[0] = 1
+                            tmp = tot_maze[i][j][k].move(tot_maze, i ,j, k)
+                        elif type(tot_maze[i][j][k]) in self.ghosts:
+                            isthere[1] = 1
+                            tmp = tot_maze[i][j][k].move(tot_maze, i, j, k)
+                        elif tot_maze[i][j][k] == 2:
+                            isthere[2] = 1
+                        elif tot_maze[i][j][k] == 3:
+                            isthere[3] = 1
+                        if tmp == 0:
+                            k += 1
+                    
+                    if isthere[0] and isthere[1]:
+                        pygame.QUIT                     # 게임 끝나느거 관련해서 추가적인 변수 지정 -> 추후 스크린 분리시에 관리
+                    to_delete = []
+                    if isthere[0] and isthere[2]:
+                        to_delete.append(2)
+                    if isthere[0] and isthere[3]:
+                        to_delete.append(3)
+                        self.pacman.is_powered_up = True    # power up은 시켰지만 아직 power up시 변화 생성 X
+                    
+                    k = 0
+                    while (k < len(tot_maze[i][j])):
+                        if tot_maze[i][j][k] == 2:
+                            tot_maze[i][j][k] = 0
+                            break
+                        if tot_maze[i][j][k] == 3:
+                            tot_maze[i][j][k] = 0
+                            break
+                        k += 1
             
             self.check_collisions()
-            self.check_win_condition()
     
     def check_collisions(self):
         """충돌 검사"""
@@ -90,21 +134,24 @@ class Game:
         # TODO: 팩맨과 유령 충돌
         pass
     
-    def check_win_condition(self):
-        """승리 조건 확인"""
-        # TODO: 모든 점을 먹었는지 확인
-        pass
-    
     def draw(self):
         """화면 그리기"""
         self.screen.fill(BLACK)
         
         # TODO: 모든 게임 객체 그리기
-        self.maze.draw(self.screen, -10, -10)
-        self.pacman.draw(self.screen)
+        self.maze.draw(self.screen, self.ygap, self.xgap)
         
-        for ghost in self.ghosts:
-            ghost.draw(self.screen)
+        tot_maze = self.maze.tot_maze
+        for i in range(MAX_Y + 1):
+            for j in range(MAX_X + 1):
+                for k in tot_maze[i][j]:
+                    if type(k) != int:
+                        k.draw(self.screen, i, j, self.ygap, self.xgap)
+        
+        # self.pacman.draw(self.screen, 20, 20, -10, -10)
+        
+        # for ghost in self.ghosts:
+        #     ghost.draw(self.screen, 10, 10, -10, -10)
         
         # TODO: 점수, 생명 등 UI 그리기
         self.draw_ui()
@@ -147,30 +194,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-"""
-구현 과제 체크리스트:
-===================
-
-필수 구현 사항:
-□ MovableObject의 move() 메서드 구현
-□ MovableObject의 can_move() 메서드 구현
-□ Pacman의 update() 메서드 완성
-□ Pacman의 eat_dot() 메서드 구현
-□ Ghost의 chase_pacman() 메서드 구현
-□ Ghost의 flee_from_pacman() 메서드 구현
-□ 각 유령(Blinky, Pinky, Inky, Clyde)의 고유한 AI 패턴 구현
-□ Maze의 is_wall() 메서드 구현
-□ Game의 check_collisions() 메서드 구현
-□ Game의 check_win_condition() 메서드 구현
-
-코드 작성 팁:
-- 객체 간의 상호작용을 명확히 정의하세요
-- 각 클래스의 책임을 명확히 구분하세요
-- 상속을 적절히 활용하여 코드 중복을 줄이세요
-- 주석을 충분히 작성하여 코드의 가독성을 높이세요
-- Git을 사용하여 버전 관리를 하면 가산점이 있습니다
-
-행운을 빕니다!
-"""

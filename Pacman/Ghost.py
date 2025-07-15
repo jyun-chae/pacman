@@ -24,24 +24,34 @@ ORANGE = (255, 165, 0)
 class Ghost(MovableObject):
     """유령 기본 클래스"""
     
-    def __init__(self, x, y, color, name):
-        super().__init__(x, y, speed=1)
+    def __init__(self, y, x, color, name):
+        super().__init__(y, x, speed=30)
         self.color = color
         self.name = name
         self.is_frightened = False
         self.is_eaten = False
         self.home_x = x
         self.home_y = y
+        
+        self.sleep = True
     
-    def update(self):
+    def update(self, maze, i, j):
         """유령 상태 업데이트"""
         # TODO: 유령의 이동 AI 구현
-        pass
+        if self.sleep:
+            return
     
-    def draw(self, screen):
+    def draw(self, screen, i, j, ygap, xgap):
         """유령 그리기"""
         # TODO: 유령을 화면에 그리기
         color = BLUE if self.is_frightened else self.color
+        if (self.tick < self.speed/2):
+            self.x = j*CELL_SIZE + xgap + (self.tick/self.speed)*CELL_SIZE*self.direction.value[1]
+            self.y = i*CELL_SIZE + ygap + (self.tick/self.speed)*CELL_SIZE*self.direction.value[0]
+        else:
+            self.x = j*CELL_SIZE + xgap - ((self.speed - self.tick)/self.speed)*CELL_SIZE*self.direction.value[1]
+            self.y = i*CELL_SIZE + ygap - ((self.speed - self.tick)/self.speed)*CELL_SIZE*self.direction.value[0]
+        self.rect = pygame.Rect(self.x, self.y, CELL_SIZE, CELL_SIZE)
         pygame.draw.rect(screen, color, self.rect)
     
     def chase_pacman(self, pacman):
@@ -57,8 +67,8 @@ class Ghost(MovableObject):
 
 class Blinky(Ghost):
     """빨간 유령 - 직접 추적"""
-    def __init__(self, x, y):
-        super().__init__(x, y, RED, "Blinky")
+    def __init__(self, y, x, color, name):
+        super().__init__(y, x, color, name)
     
     # TODO: Blinky만의 특별한 추적 패턴 구현
 

@@ -3,22 +3,7 @@ import sys
 from enum import Enum
 from abc import ABC, abstractmethod
 
-# 게임 설정 상수
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
-FPS = 60
-CELL_SIZE = 20
-
-MAX_X = SCREEN_WIDTH//CELL_SIZE
-MAX_Y = SCREEN_HEIGHT//CELL_SIZE
-
-class Direction(Enum):
-    """방향을 나타내는 열거형 클래스"""
-    UP = (-1, 0)
-    DOWN = (1, 0)
-    LEFT = (0, -1)
-    RIGHT = (0, 1)
-    NONE = (0, 0)
+from Constants import *
 
 class GameObject(ABC):
     """모든 게임 객체의 기본 클래스"""

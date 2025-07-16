@@ -5,14 +5,7 @@ from abc import ABC, abstractmethod
 
 from Object import *
 
-# 게임 설정 상수
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
-FPS = 60
-CELL_SIZE = 20
-
-# 색상 정의
-WHITE = (255, 255, 255)
+from Constants import *
 
 class Dot(GameObject):
     """일반 점"""
@@ -40,7 +33,7 @@ class PowerPellet(Dot):
     
     def __init__(self, x, y):
         super().__init__(x, y)
-        self.points = 50
+        self.points = 3
     
     def draw(self, screen, i, j, ygap, xgap):
         """파워 펠릿 그리기"""

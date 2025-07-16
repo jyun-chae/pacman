@@ -1,9 +1,9 @@
 class ABC():
     pass
 
-class BCD(ABC):
-    pass
 
-a = BCD()
+b = ABC()
+a = [b, 2, 3]
+del a[0]
 
-print(type(a) == ABC)
+print(a)

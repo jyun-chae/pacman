@@ -9,23 +9,7 @@ from Ghost import *
 from Pacman import *
 from Object import *
 
-# 게임 설정 상수
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
-FPS = 60
-CELL_SIZE = 20
-
-MAX_X = SCREEN_WIDTH//CELL_SIZE
-MAX_Y = SCREEN_HEIGHT//CELL_SIZE
-
-BLACK = (0, 0, 0)
-YELLOW = (255, 255, 0)
-WHITE = (255, 255, 255)
-BLUE = (0, 0, 255)
-RED = (255, 0, 0)
-PINK = (255, 182, 193)
-CYAN = (0, 255, 255)
-ORANGE = (255, 165, 0)
+from Constants import *
 
 OBJECTS = [[Pacman, YELLOW, "pacman"],
            [Blinky, PINK, "follow"]
@@ -51,24 +35,36 @@ class Maze:
         self.make_tot_map()
     
     def read_txt(self, filename):
-        with open(filename, 'r', encoding='utf-8') as file:
-            lines = file.readlines()
+        try:
+            with open(filename, 'r', encoding='utf-8') as file:
+                lines = file.readlines()
+                
+            self.row, self.col = map(int, lines[0].split())
             
-        self.row, self.col = map(int, lines[0].split())
-        
-        for line in lines[1:1+self.row]:
-            self.maze.append(list(map(int, line.split())))
+            for line in lines[1:1+self.row]:
+                self.maze.append(list(map(int, line.split())))
             
-        for i in range(self.row):
-            for j in range(self.col):
-                if self.maze[i][j] == 4:
-                    self.p_y = i
-                    self.p_x = j
-                    self.maze[i][j] = [0]
-                else:
-                    self.maze[i][j] = [self.maze[i][j]]
-                if self.maze[i][j][0] > 3:
-                    self.maze[i][j].insert(0,2)
+            for i in range(self.row):
+                if self.col != len(self.maze[i]):
+                    raise Exception("map.txt의 구조에 문제가 있습니다")
+            
+            for i in range(self.row):
+                for j in range(self.col):
+                    if self.maze[i][j] < 0 or self.maze[i][j] > 8:
+                        raise Exception("map.txt의 구조에 문제가 있습니다")
+                    if self.maze[i][j] == 4:
+                        self.p_y = i
+                        self.p_x = j
+                        self.maze[i][j] = [0]
+                    else:
+                        self.maze[i][j] = [self.maze[i][j]]
+                    if self.maze[i][j][0] > 3:
+                        self.maze[i][j].insert(0,0)
+            
+            if self.p_y > MAX_Y or self.p_x > MAX_X:
+                raise Exception("초기 팩맨의 위치가 이상합니다")
+        except Exception as e:
+            raise Exception(e)
     
     def make_tot_map(self):
         x_cnt = 0
@@ -94,23 +90,22 @@ class Maze:
     
     def shift_map_x(self):
         self.x_idx += 1
-        for i in range(MAX_Y):
-            del self.tot_maze[i][MAX_X]
         for i in range(MAX_X):
-            self.tot_maze[:][i] = deepcopy(self.tot_maze[:][i+1])
+            for j in range(MAX_Y):
+                self.tot_maze[j][i] = deepcopy(self.tot_maze[j][i+1])
         y_cnt = 0
         while (y_cnt <= MAX_Y):
-            self.tot_maze[y_cnt][MAX_X] = self.maze[(self.y_idx + y_cnt)%self.row][(self.x_idx + MAX_X)%self.col].copy()
+            self.tot_maze[y_cnt][MAX_X] = deepcopy(self.maze[(self.y_idx + y_cnt)%self.row][(self.x_idx + MAX_X)%self.col])
+            y_cnt += 1
             
     def shift_map_y(self):
         self.y_idx += 1
-        for i in range(MAX_X):
-            del self.tot_maze[MAX_Y][i]
         for i in range(MAX_Y):
             self.tot_maze[i][:] = deepcopy(self.tot_maze[i+1][:])
         x_cnt = 0
         while (x_cnt <= MAX_X):
-            self.tot_maze[MAX_Y][x_cnt] = self.maze[(self.y_idx + MAX_Y)%self.row][(self.x_idx + x_cnt)%self.col].copy()      
+            self.tot_maze[MAX_Y][x_cnt] = deepcopy(self.maze[(self.y_idx + MAX_Y)%self.row][(self.x_idx + x_cnt)%self.col])
+            x_cnt += 1
     
     def draw(self, screen, ygap, xgap):
         x_cnt = 0

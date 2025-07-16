@@ -3,30 +3,13 @@ import sys
 from enum import Enum
 from abc import ABC, abstractmethod
 
+from Constants import *
+
 from Object import *
 from Pacman import *
 from Ghost import *
 from Dot import *
 from Maze import *
-
-# 게임 설정 상수
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
-FPS = 60
-CELL_SIZE = 20
-
-MAX_X = SCREEN_WIDTH//CELL_SIZE
-MAX_Y = SCREEN_HEIGHT//CELL_SIZE
-
-# 색상 정의
-BLACK = (0, 0, 0)
-YELLOW = (255, 255, 0)
-WHITE = (255, 255, 255)
-BLUE = (0, 0, 255)
-RED = (255, 0, 0)
-PINK = (255, 182, 193)
-CYAN = (0, 255, 255)
-ORANGE = (255, 165, 0)
 
 class Game:
     """게임 메인 클래스"""
@@ -50,7 +33,7 @@ class Game:
             Clyde
         ]
         self.dots = Dot(0,0)
-        self.power_dot = PowerPellet(0,0)
+        self.power_dots = PowerPellet(0,0)
         
         self.score = 0
         self.high_score = 0
@@ -95,6 +78,7 @@ class Game:
                     while (k < len(tot_maze[i][j])):
                         tmp = 0
                         if type(tot_maze[i][j][k]) == Pacman:
+                            self.pacman = tot_maze[i][j][k]
                             isthere[0] = 1
                             tmp = tot_maze[i][j][k].move(tot_maze, i ,j, k)
                         elif type(tot_maze[i][j][k]) in self.ghosts:
@@ -108,31 +92,44 @@ class Game:
                             k += 1
                     
                     if isthere[0] and isthere[1]:
-                        pygame.QUIT                     # 게임 끝나느거 관련해서 추가적인 변수 지정 -> 추후 스크린 분리시에 관리
+                        flag = self.pacman.crash()
+                        if flag:
+                            for k in range(len(tot_maze[i][j])):
+                                if type(tot_maze[i][j][k]) in self.ghosts:
+                                    del tot_maze[i][j][k]
+                                    break
+
                     to_delete = []
                     if isthere[0] and isthere[2]:
                         to_delete.append(2)
+                        self.pacman.eat_dot(self.dots)
                     if isthere[0] and isthere[3]:
                         to_delete.append(3)
-                        self.pacman.is_powered_up = True    # power up은 시켰지만 아직 power up시 변화 생성 X
+                        self.pacman.eat_dot(self.power_dots)
                     
                     k = 0
                     while (k < len(tot_maze[i][j])):
-                        if tot_maze[i][j][k] == 2:
+                        if tot_maze[i][j][k] == 2 and 2 in to_delete:
                             tot_maze[i][j][k] = 0
                             break
-                        if tot_maze[i][j][k] == 3:
+                        if tot_maze[i][j][k] == 3 and 3 in to_delete:
                             tot_maze[i][j][k] = 0
                             break
                         k += 1
             
-            self.check_collisions()
-    
-    def check_collisions(self):
-        """충돌 검사"""
-        # TODO: 팩맨과 점/파워펠릿 충돌
-        # TODO: 팩맨과 유령 충돌
-        pass
+    def move_maze(self):
+        if self.pacman.x > SCREEN_WIDTH/2:
+            self.xgap -= self.pacman.x - SCREEN_WIDTH/2
+            self.pacman.x = SCREEN_WIDTH/2
+        if self.pacman.y > SCREEN_HEIGHT/2:
+            self.ygap -= self.pacman.y - SCREEN_HEIGHT/2
+            self.pacman.y = SCREEN_HEIGHT/2
+        if self.xgap <= -30:
+            self.xgap = -10
+            self.maze.shift_map_x()
+        if self.ygap <= -30:
+            self.ygap = -10
+            self.maze.shift_map_y()
     
     def draw(self):
         """화면 그리기"""
@@ -147,6 +144,10 @@ class Game:
                 for k in tot_maze[i][j]:
                     if type(k) != int:
                         k.draw(self.screen, i, j, self.ygap, self.xgap)
+                    elif k == 2:
+                        self.dots.draw(self.screen, i, j, self.ygap, self.xgap)
+                    elif k == 3:
+                        self.power_dots.draw(self.screen, i, j, self.ygap, self.xgap)
         
         # self.pacman.draw(self.screen, 20, 20, -10, -10)
         
@@ -162,7 +163,7 @@ class Game:
         """UI 요소 그리기"""
         # TODO: 점수, 생명, 게임 오버 메시지 등 표시
         font = pygame.font.Font(None, 36)
-        score_text = font.render(f"Score: {self.score}", True, WHITE)
+        score_text = font.render(f"Score: {self.pacman.score}", True, WHITE)
         self.screen.blit(score_text, (10, 10))
         
         if self.game_over:
@@ -180,6 +181,7 @@ class Game:
             self.handle_events()
             self.update()
             self.draw()
+            self.move_maze()
             self.clock.tick(FPS)
         
         pygame.quit()

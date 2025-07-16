@@ -4,22 +4,9 @@ from enum import Enum
 from abc import ABC, abstractmethod
 
 from Object import *
+from Pacman import *
 
-# 게임 설정 상수
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
-FPS = 60
-CELL_SIZE = 20
-
-# 색상 정의
-BLACK = (0, 0, 0)
-YELLOW = (255, 255, 0)
-WHITE = (255, 255, 255)
-BLUE = (0, 0, 255)
-RED = (255, 0, 0)
-PINK = (255, 182, 193)
-CYAN = (0, 255, 255)
-ORANGE = (255, 165, 0)
+from Constants import *
 
 class Ghost(MovableObject):
     """유령 기본 클래스"""
@@ -33,13 +20,14 @@ class Ghost(MovableObject):
         self.home_x = x
         self.home_y = y
         
-        self.sleep = True
+        self.direction = Direction.NONE
     
-    def update(self, maze, i, j):
+    @abstractmethod
+    def update(self, maze, i, j, pacman):
         """유령 상태 업데이트"""
         # TODO: 유령의 이동 AI 구현
-        if self.sleep:
-            return
+        # pacman이 power 상태면 flee~ 실행
+        pass
     
     def draw(self, screen, i, j, ygap, xgap):
         """유령 그리기"""
@@ -54,15 +42,65 @@ class Ghost(MovableObject):
         self.rect = pygame.Rect(self.x, self.y, CELL_SIZE, CELL_SIZE)
         pygame.draw.rect(screen, color, self.rect)
     
-    def chase_pacman(self, pacman):
-        """팩맨 추적 AI"""
-        # TODO: 팩맨을 추적하는 알고리즘 구현
+    @abstractmethod
+    def wakeup(self, maze, i, j, pacman):
         pass
     
-    def flee_from_pacman(self, pacman):
+    """앵간해서는 Object에서 처리하려고 했는데 너무 달라서 그냥 따로 처리 -> 기획실수 맞음 ㅇㅇ;;"""
+    def move(self, maze, i, j, k, pacman):
+        if self.direction == Direction.NONE:
+            self.wakeup(maze, i, j, pacman.iy, pacman.ix)
+            return 0
+        self.tick += 1
+        if self.tick >= self.speed:
+            # 다음 이동 방향이 벽인지를 update에서 next_dir 변경하며 확인
+            self.tick = 0
+            self.update(maze, i, j, pacman.iy, pacman.ix)
+        if self.tick != self.speed//2:
+            return 0
+        tmp = maze[i][j].pop(k)
+        i += self.direction.value[0]
+        j += self.direction.value[1]
+        # canmove의 부분 범위 밖이면 삭제
+        if i > MAX_Y or j > MAX_X:
+            return 1
+        if i < 0 or j < 0:
+            return 1
+        maze[i][j].append(tmp)
+        return 0
+    
+    def flee_from_pacman(self, maze, i, j, pacman):
         """팩맨으로부터 도망가는 AI"""
         # TODO: 팩맨으로부터 도망가는 알고리즘 구현
-        pass
+        to_p = [pacman.iy - i, pacman.ix - j]
+        if to_p[0] > 0 and to_p[1] > 0:
+            if maze[i][j-1][0] != 1:
+                self.direction = Direction.LEFT
+                return
+            if maze[i-1][j][0] != 1:
+                self.direction = Direction.UP
+                return
+        elif to_p[0] > 0 and to_p[1] < 0:
+            if maze[i][j+1][0] != 1:
+                self.direction = Direction.RIGHT
+                return
+            if maze[i-1][j][0] != 1:
+                self.direction = Direction.UP
+                return
+        elif to_p[0] < 0 and to_p[1] > 0:
+            if maze[i][j-1][0] != 1:
+                self.direction = Direction.LEFT
+                return
+            if maze[i+1][j][0] != 1:
+                self.direction = Direction.DOWN
+                return
+        elif to_p[0] < 0 and to_p[1] < 0:
+            if maze[i][j+1][0] != 1:
+                self.direction = Direction.RIGHT
+                return
+            if maze[i+1][j][0] != 1:
+                self.direction = Direction.DOWN
+                return
 
 
 class Blinky(Ghost):
@@ -82,9 +120,35 @@ class Pinky(Ghost):
 
 
 class Inky(Ghost):
-    """하늘색 유령 - 예측 불가"""
+    """하늘색 유령 - 직진"""
     def __init__(self, x, y):
         super().__init__(x, y, CYAN, "Inky")
+        self.speed = 10
+        
+    def wakeup(self, maze, i, j, pacman):
+        if (i != pacman.iy and j != pacman.ix):
+            return False
+        if (i == pacman.iy):
+            while (i != pacman.iy):
+                if maze[i][j][0] == 1:
+                    return False
+                i += 1
+        if (j == pacman.ix):
+            while (j != pacman.ix):
+                if maze[i][j][0] == 1:
+                    return False
+                j += 1
+        return True
+
+    def update(self, maze, i, j, pacman):
+        if (i > pacman.iy):
+            self.direction = Direction.UP
+        if (i < pacman.iy):
+            self.direction = Direction.DOWN
+        if (j > pacman.ix):
+            self.direction = Direction.RIGHT
+        if (j < pacman.ix):
+            self.direction = Direction.LEFT
     
     # TODO: Inky만의 특별한 추적 패턴 구현
 

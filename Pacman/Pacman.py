@@ -15,8 +15,8 @@ class Pacman(MovableObject):
     def __init__(self, y, x, color = YELLOW, name = "pacman"):
         super().__init__(y, x, speed=30)
         self.color = YELLOW
-        self.x = 0
-        self.y = 0
+        self.x = -100
+        self.y = -100
         self.ix = x
         self.iy = y
         self.next_dir = Direction.NONE
@@ -24,7 +24,7 @@ class Pacman(MovableObject):
         self.score = 0
         self.is_powered_up = False
         self.power_up_timer = 0
-        self.power_up_max = 20
+        self.power_up_max = 5*FPS
     
     def update(self, maze, i, j):
         """팩맨 상태 업데이트"""
@@ -37,11 +37,9 @@ class Pacman(MovableObject):
         if len(maze[i][j]) > 0 and maze[i][j][0] == 1:
             self.direction = Direction.NONE
             return
-        if self.is_powered_up:
-            self.power_up_timer += 1
-            if self.power_up_timer >= self.power_up_max:
-                self.power_up_timer = 0
-                self.is_powered_up = False
+        if self.is_powered_up and self.power_up_timer >= self.power_up_max:
+            self.power_up_timer = 0
+            self.is_powered_up = False
     
     def move_maze(self):
         if self.iy > MAX_Y/2 or self.ix > MAX_X/2:
@@ -67,7 +65,7 @@ class Pacman(MovableObject):
             return 1
         self.lose_life()
         self.is_powered_up = True
-        self.power_up_max = 5
+        self.power_up_max = FPS
         return 0
     
     def eat_dot(self, dot):
@@ -76,7 +74,7 @@ class Pacman(MovableObject):
         self.score += dot.points
         if type(dot) == PowerPellet:
             self.is_powered_up = True
-            self.power_up_max = 20
+            self.power_up_max = 5*FPS
     
     def lose_life(self):
         """생명 잃기"""

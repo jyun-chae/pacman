@@ -69,6 +69,8 @@ class Game:
             
             tot_maze = self.maze.tot_maze
             
+            ghosts = []
+            is_pacman = 1
             for i in range(MAX_Y + 1):
                 for j in range(MAX_X + 1):
                     isthere = [0,0,0,0] # 팩맨, 유령, 점, 파워점
@@ -78,12 +80,14 @@ class Game:
                     while (k < len(tot_maze[i][j])):
                         tmp = 0
                         if type(tot_maze[i][j][k]) == Pacman:
+                            is_pacman = 0
                             self.pacman = tot_maze[i][j][k]
                             isthere[0] = 1
-                            tmp = tot_maze[i][j][k].move(tot_maze, i ,j, k)
+                            tmp = tot_maze[i][j][k].move(tot_maze, i ,j, k, self.pacman)
                         elif type(tot_maze[i][j][k]) in self.ghosts:
                             isthere[1] = 1
-                            tmp = tot_maze[i][j][k].move(tot_maze, i, j, k)
+                            tmp, gst = tot_maze[i][j][k].move(tot_maze, i, j, k, self.pacman)
+                            ghosts.append([gst,gst.i,gst.j])
                         elif tot_maze[i][j][k] == 2:
                             isthere[2] = 1
                         elif tot_maze[i][j][k] == 3:
@@ -91,13 +95,13 @@ class Game:
                         if tmp == 0:
                             k += 1
                     
-                    if isthere[0] and isthere[1]:
-                        flag = self.pacman.crash()
-                        if flag:
-                            for k in range(len(tot_maze[i][j])):
-                                if type(tot_maze[i][j][k]) in self.ghosts:
-                                    del tot_maze[i][j][k]
-                                    break
+                    # if isthere[0] and isthere[1]:
+                    #     flag = self.pacman.crash()
+                    #     if flag:
+                    #         for k in range(len(tot_maze[i][j])):
+                    #             if type(tot_maze[i][j][k]) in self.ghosts:
+                    #                 del tot_maze[i][j][k]
+                    #                 break
 
                     to_delete = []
                     if isthere[0] and isthere[2]:
@@ -116,6 +120,25 @@ class Game:
                             tot_maze[i][j][k] = 0
                             break
                         k += 1
+            
+            for i in range(len(ghosts)):
+                if (abs(ghosts[i][0].x - self.pacman.x) < 5) and (abs(ghosts[i][0].y - self.pacman.y) < 5):
+                    flag = self.pacman.crash()
+                    if flag:
+                        for k in range(len(tot_maze[ghosts[i][1]][ghosts[i][2]])):
+                                if type(tot_maze[ghosts[i][1]][ghosts[i][2]][k]) in self.ghosts:
+                                    del tot_maze[ghosts[i][1]][ghosts[i][2]][k]
+                                    break
+            
+            if self.pacman.is_powered_up:
+                self.pacman.power_up_timer += 1
+            if is_pacman:
+                is_pacman += 1
+                if (is_pacman > 5):
+                    self.game_over = True
+            if self.pacman.lives <= 0:
+                self.game_over = True
+            
             
     def move_maze(self):
         if self.pacman.x > SCREEN_WIDTH/2:
@@ -165,15 +188,13 @@ class Game:
         font = pygame.font.Font(None, 36)
         score_text = font.render(f"Score: {self.pacman.score}", True, WHITE)
         self.screen.blit(score_text, (10, 10))
+        life_text = font.render(f"Life: {self.pacman.lives}", True, WHITE)
+        self.screen.blit(life_text, (10, 40))
         
         if self.game_over:
             game_over_text = font.render("GAME OVER", True, RED)
             text_rect = game_over_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2))
             self.screen.blit(game_over_text, text_rect)
-        elif self.game_won:
-            win_text = font.render("YOU WIN!", True, YELLOW)
-            text_rect = win_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2))
-            self.screen.blit(win_text, text_rect)
     
     def run(self):
         """게임 메인 루프"""

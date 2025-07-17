@@ -35,7 +35,7 @@ class MovableObject(GameObject):
         self.speed = speed
         self.direction = Direction.NONE
     
-    def move(self, maze, i, j, k):
+    def move(self, maze, i, j, k, pacman):
         # 구현 문제로 그냥 벽 넘어가면 삭제 -> 계속해서 움직이는 ghost는 -x, +y방향으로 먼저 움직이도록 지시
         """객체 이동 처리"""
         # TODO: 이동 로직 구현

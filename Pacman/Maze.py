@@ -12,7 +12,10 @@ from Object import *
 from Constants import *
 
 OBJECTS = [[Pacman, YELLOW, "pacman"],
-           [Blinky, PINK, "follow"]
+           [Blinky, RED, "bomb"],
+           [Pinky, PINK, "chase"],
+           [Inky, CYAN, "dash"],
+           [Clyde, ORANGE, "follow"]
            ]
 
 class Maze:
@@ -97,6 +100,11 @@ class Maze:
         while (y_cnt <= MAX_Y):
             self.tot_maze[y_cnt][MAX_X] = deepcopy(self.maze[(self.y_idx + y_cnt)%self.row][(self.x_idx + MAX_X)%self.col])
             y_cnt += 1
+        for i in range(MAX_Y+1):
+            if len(self.tot_maze[i][MAX_X]) > 1:
+                # 나중에 상세값 수정
+                tmp = self.tot_maze[i][MAX_X][1]
+                self.tot_maze[i][MAX_X][1] = OBJECTS[tmp - 4][0](0, 0, OBJECTS[tmp - 4][1], OBJECTS[tmp - 4][2])   # 위치 나중에 수정
             
     def shift_map_y(self):
         self.y_idx += 1
@@ -106,6 +114,11 @@ class Maze:
         while (x_cnt <= MAX_X):
             self.tot_maze[MAX_Y][x_cnt] = deepcopy(self.maze[(self.y_idx + MAX_Y)%self.row][(self.x_idx + x_cnt)%self.col])
             x_cnt += 1
+        for j in range(MAX_X+1):
+            if len(self.tot_maze[MAX_Y][j]) > 1:
+                # 나중에 상세값 수정
+                tmp = self.tot_maze[MAX_Y][j][1]
+                self.tot_maze[MAX_Y][j][1] = OBJECTS[tmp - 4][0](0, 0, OBJECTS[tmp - 4][1], OBJECTS[tmp - 4][2])   # 위치 나중에 수정
     
     def draw(self, screen, ygap, xgap):
         x_cnt = 0

@@ -25,6 +25,8 @@ class Pacman(MovableObject):
         self.is_powered_up = False
         self.power_up_timer = 0
         self.power_up_max = 5*FPS
+        self.path = []
+        self.index = -1
     
     def update(self, maze, i, j):
         """팩맨 상태 업데이트"""
@@ -37,9 +39,9 @@ class Pacman(MovableObject):
         if len(maze[i][j]) > 0 and maze[i][j][0] == 1:
             self.direction = Direction.NONE
             return
-        if self.is_powered_up and self.power_up_timer >= self.power_up_max:
-            self.power_up_timer = 0
-            self.is_powered_up = False
+        if self.direction != Direction.NONE:
+            self.path.append(self.direction)
+            self.index += 1
     
     def move_maze(self):
         if self.iy > MAX_Y/2 or self.ix > MAX_X/2:

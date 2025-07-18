@@ -10,6 +10,7 @@ from Pacman import *
 from Ghost import *
 from Dot import *
 from Maze import *
+from Rank import *
 
 class Game:
     """게임 메인 클래스"""
@@ -19,9 +20,13 @@ class Game:
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption("팩맨 게임")
         self.clock = pygame.time.Clock()
+        self.start_time = pygame.time.get_ticks()
         self.running = True
         self.game_over = False
         self.game_won = False
+        
+        self.time_limit = -1
+        self.bombs = []
         
         # 게임 객체 초기화
         self.maze = Maze()
@@ -40,6 +45,37 @@ class Game:
         
         self.ygap = -10
         self.xgap = -10
+        
+        self.level = 0
+        
+    def reset(self, time_limit):
+        self.clock = pygame.time.Clock()
+        self.start_time = pygame.time.get_ticks()
+        self.running = True
+        self.game_over = 0
+        self.game_won = False
+        
+        self.time_limit = time_limit
+        
+        # 게임 객체 초기화
+        self.maze = Maze()
+        self.pacman = self.maze.tot_maze[self.maze.p_y][self.maze.p_x][0]
+        self.ghosts = [
+            Blinky,
+            Pinky,
+            Inky,
+            Clyde
+        ]
+        self.dots = Dot(0,0)
+        self.power_dots = PowerPellet(0,0)
+        
+        self.score = 0
+        self.high_score = 0
+        
+        self.ygap = -10
+        self.xgap = -10
+        
+        self.level = 0
     
     def handle_events(self):
         """이벤트 처리"""
@@ -66,6 +102,9 @@ class Game:
             # 3. 충돌 검사
             # 4. 점수 업데이트
             # 5. 게임 종료 조건 확인
+            if self.time_limit != -1 and 10*self.level >= self.time_limit:
+                self.game_over = 1
+                return
             
             tot_maze = self.maze.tot_maze
             
@@ -87,6 +126,10 @@ class Game:
                         elif type(tot_maze[i][j][k]) in self.ghosts:
                             isthere[1] = 1
                             tmp, gst = tot_maze[i][j][k].move(tot_maze, i, j, k, self.pacman)
+                            if tmp == -1:
+                                self.bombs.append([i, j, pygame.time.get_ticks()])
+                                tot_maze[i][j].pop(k)
+                                tmp = 1
                             ghosts.append([gst,gst.i,gst.j])
                         elif tot_maze[i][j][k] == 2:
                             isthere[2] = 1
@@ -132,27 +175,32 @@ class Game:
             
             if self.pacman.is_powered_up:
                 self.pacman.power_up_timer += 1
+            if self.pacman.is_powered_up and self.pacman.power_up_timer >= self.pacman.power_up_max:
+                self.pacman.power_up_timer = 0
+                self.pacman.is_powered_up = False
             if is_pacman:
                 is_pacman += 1
                 if (is_pacman > 5):
-                    self.game_over = True
+                    self.game_over = 1
             if self.pacman.lives <= 0:
-                self.game_over = True
+                self.game_over = 1
             
             
     def move_maze(self):
-        if self.pacman.x > SCREEN_WIDTH/2:
-            self.xgap -= self.pacman.x - SCREEN_WIDTH/2
-            self.pacman.x = SCREEN_WIDTH/2
-        if self.pacman.y > SCREEN_HEIGHT/2:
-            self.ygap -= self.pacman.y - SCREEN_HEIGHT/2
-            self.pacman.y = SCREEN_HEIGHT/2
-        if self.xgap <= -30:
-            self.xgap = -10
-            self.maze.shift_map_x()
-        if self.ygap <= -30:
-            self.ygap = -10
-            self.maze.shift_map_y()
+        if not self.game_over and not self.game_won:
+            self.level = (pygame.time.get_ticks() - self.start_time)/10000
+            if self.pacman.x > SCREEN_WIDTH/2:
+                self.xgap -= self.pacman.x - SCREEN_WIDTH/2
+                self.pacman.x = SCREEN_WIDTH/2
+            if self.pacman.y > SCREEN_HEIGHT/2:
+                self.ygap -= self.pacman.y - SCREEN_HEIGHT/2
+                self.pacman.y = SCREEN_HEIGHT/2
+            if self.xgap <= -30:
+                self.xgap = -10
+                self.maze.shift_map_x(int(self.level))
+            if self.ygap <= -30:
+                self.ygap = -10
+                self.maze.shift_map_y(int(self.level))
     
     def draw(self):
         """화면 그리기"""
@@ -160,7 +208,7 @@ class Game:
         
         # TODO: 모든 게임 객체 그리기
         self.maze.draw(self.screen, self.ygap, self.xgap)
-        
+    
         tot_maze = self.maze.tot_maze
         for i in range(MAX_Y + 1):
             for j in range(MAX_X + 1):
@@ -172,6 +220,13 @@ class Game:
                     elif k == 3:
                         self.power_dots.draw(self.screen, i, j, self.ygap, self.xgap)
         
+        idx = 0
+        while (idx < len(self.bombs)):
+            if (pygame.time.get_ticks() - self.bombs[idx][2])/500 > 1:
+                self.bombs.pop(idx)
+            else:
+                self.bob(self.bombs[idx][0], self.bombs[idx][1])
+            idx += 1
         # self.pacman.draw(self.screen, 20, 20, -10, -10)
         
         # for ghost in self.ghosts:
@@ -190,29 +245,58 @@ class Game:
         self.screen.blit(score_text, (10, 10))
         life_text = font.render(f"Life: {self.pacman.lives}", True, WHITE)
         self.screen.blit(life_text, (10, 40))
+        life_text = font.render(f"Time: {10*self.level:.2f}", True, WHITE)
+        self.screen.blit(life_text, (10, 70))
         
         if self.game_over:
             game_over_text = font.render("GAME OVER", True, RED)
             text_rect = game_over_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2))
             self.screen.blit(game_over_text, text_rect)
+            self.game_over += 1
     
     def run(self):
         """게임 메인 루프"""
         while self.running:
+            if (self.game_over > FPS*5):
+                return 1
             self.handle_events()
             self.update()
             self.draw()
             self.move_maze()
             self.clock.tick(FPS)
-        
-        pygame.quit()
-        sys.exit()
+        return -1
 
+    def bob(self, i, j):
+        rect = pygame.Rect(j*CELL_SIZE - CELL_SIZE*3, i*CELL_SIZE - CELL_SIZE*3, CELL_SIZE*7, CELL_SIZE*7)
+        pygame.draw.rect(self.screen, RED, rect)
+        if abs(self.pacman.iy - i) <= 3 and abs(self.pacman.ix - j) <= 3:
+            self.pacman.crash()
 
 def main():
     """프로그램 진입점"""
     game = Game()
-    game.run()
+    rank = Ranking(game.screen)
+    flag = 1
+    while True:
+        if flag == 1:
+            rank.read_txt()
+            while flag == 1:
+                rank.draw_intro(game.screen)
+                flag = rank.update()
+            
+        if flag == 2:
+            game.reset(60)
+            flag = game.run()
+            rank.insert_score(game.pacman.score)
+        
+        if flag == 3:
+            game.reset(-1)
+            flag = game.run()
+            rank.insert_score(game.pacman.score)
+        
+        if flag == -1:
+            pygame.quit()
+            sys.exit()
 
 
 if __name__ == "__main__":

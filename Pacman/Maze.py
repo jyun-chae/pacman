@@ -3,6 +3,7 @@ import sys
 from enum import Enum
 from abc import ABC, abstractmethod
 from copy import deepcopy
+import random as rd
 
 from Dot import *
 from Ghost import *
@@ -35,7 +36,7 @@ class Maze:
         self.x_idx = 0
         
         self.read_txt('./datas/map.txt')
-        self.make_tot_map()
+        self.make_tot_map(0)
     
     def read_txt(self, filename):
         try:
@@ -69,7 +70,7 @@ class Maze:
         except Exception as e:
             raise Exception(e)
     
-    def make_tot_map(self):
+    def make_tot_map(self, level):
         x_cnt = 0
         y_cnt = 0
         while (y_cnt <= MAX_Y):
@@ -86,12 +87,16 @@ class Maze:
                 if len(self.tot_maze[i][j]) > 1:
                     # 나중에 상세값 수정
                     tmp = self.tot_maze[i][j][1]
-                    self.tot_maze[i][j][1] = OBJECTS[tmp - 4][0](0, 0, OBJECTS[tmp - 4][1], OBJECTS[tmp - 4][2])   # 위치 나중에 수정
+                    proba = rd.randint(1,10)
+                    if proba > LEVELS[level]:
+                        self.tot_maze[i][j].pop(1)
+                    else:
+                        self.tot_maze[i][j][1] = OBJECTS[tmp - 4][0](i, j, OBJECTS[tmp - 4][1], OBJECTS[tmp - 4][2])   # 위치 나중에 수정
         
         self.tot_maze[self.p_y][self.p_x] = [Pacman(self.p_y, self.p_x)]
     
     
-    def shift_map_x(self):
+    def shift_map_x(self, level):
         self.x_idx += 1
         for i in range(MAX_X):
             for j in range(MAX_Y):
@@ -104,9 +109,14 @@ class Maze:
             if len(self.tot_maze[i][MAX_X]) > 1:
                 # 나중에 상세값 수정
                 tmp = self.tot_maze[i][MAX_X][1]
-                self.tot_maze[i][MAX_X][1] = OBJECTS[tmp - 4][0](0, 0, OBJECTS[tmp - 4][1], OBJECTS[tmp - 4][2])   # 위치 나중에 수정
+                proba = rd.randint(1,10)
+                if proba > LEVELS[level]:
+                    self.tot_maze[i][MAX_X].pop(1)
+                else:
+                    self.tot_maze[i][MAX_X][1] = OBJECTS[tmp - 4][0](0, 0, OBJECTS[tmp - 4][1], OBJECTS[tmp - 4][2])   # 위치 나중에 수정
             
-    def shift_map_y(self):
+    def shift_map_y(self, level):
+        level = min(4, level)
         self.y_idx += 1
         for i in range(MAX_Y):
             self.tot_maze[i][:] = deepcopy(self.tot_maze[i+1][:])
@@ -118,7 +128,11 @@ class Maze:
             if len(self.tot_maze[MAX_Y][j]) > 1:
                 # 나중에 상세값 수정
                 tmp = self.tot_maze[MAX_Y][j][1]
-                self.tot_maze[MAX_Y][j][1] = OBJECTS[tmp - 4][0](0, 0, OBJECTS[tmp - 4][1], OBJECTS[tmp - 4][2])   # 위치 나중에 수정
+                proba = rd.randint(1,10)
+                if proba > LEVELS[level]:
+                    self.tot_maze[MAX_Y][j].pop(1)
+                else:
+                    self.tot_maze[MAX_Y][j][1] = OBJECTS[tmp - 4][0](0, 0, OBJECTS[tmp - 4][1], OBJECTS[tmp - 4][2])   # 위치 나중에 수정
     
     def draw(self, screen, ygap, xgap):
         x_cnt = 0
@@ -135,75 +149,3 @@ class Maze:
     def is_wall(self, row, col):
         if self.maze[row][col] == [1]: return True
         else: return False
-    
-    
-    
-    
-    
-    # def __init__(self):
-    #     # 미로 레이아웃 (1: 벽, 0: 빈 공간, 2: 점, 3: 파워 펠릿)
-    #     self.layout = [
-    #         [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    #         [1,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,1],
-    #         [1,3,1,1,2,1,1,1,2,1,1,2,1,1,1,2,1,1,3,1],
-    #         [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
-    #         [1,2,1,1,2,1,2,1,1,1,1,1,1,2,1,2,1,1,2,1],
-    #         [1,2,2,2,2,1,2,2,2,1,1,2,2,2,1,2,2,2,2,1],
-    #         [1,1,1,1,2,1,1,1,0,1,1,0,1,1,1,2,1,1,1,1],
-    #         [0,0,0,1,2,1,0,0,0,0,0,0,0,0,1,2,1,0,0,0],
-    #         [1,1,1,1,2,1,0,1,1,0,0,1,1,0,1,2,1,1,1,1],
-    #         [0,0,0,0,2,0,0,1,0,0,0,0,1,0,0,2,0,0,0,0],
-    #         [1,1,1,1,2,1,0,1,1,1,1,1,1,0,1,2,1,1,1,1],
-    #         [0,0,0,1,2,1,0,0,0,0,0,0,0,0,1,2,1,0,0,0],
-    #         [1,1,1,1,2,1,0,1,1,1,1,1,1,0,1,2,1,1,1,1],
-    #         [1,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,1],
-    #         [1,2,1,1,2,1,1,1,2,1,1,2,1,1,1,2,1,1,2,1],
-    #         [1,3,2,1,2,2,2,2,2,2,2,2,2,2,2,2,1,2,3,1],
-    #         [1,1,2,1,2,1,2,1,1,1,1,1,1,2,1,2,1,2,1,1],
-    #         [1,2,2,2,2,1,2,2,2,1,1,2,2,2,1,2,2,2,2,1],
-    #         [1,2,1,1,1,1,1,1,2,1,1,2,1,1,1,1,1,1,2,1],
-    #         [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
-    #         [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-    #     ]
-    #     self.dots = []
-    #     self.power_pellets = []
-    #     self.walls = []
-    #     self.load_maze()
-    
-    # def load_maze(self):
-    #     """미로 데이터 로드"""
-    #     # TODO: layout을 기반으로 벽, 점, 파워펠릿 객체 생성
-    #     for row in range(len(self.layout)):
-    #         for col in range(len(self.layout[row])):
-    #             x = col * CELL_SIZE
-    #             y = row * CELL_SIZE
-                
-    #             if self.layout[row][col] == 1:
-    #                 # 벽 생성
-    #                 self.walls.append(pygame.Rect(x, y, CELL_SIZE, CELL_SIZE))
-    #             elif self.layout[row][col] == 2:
-    #                 # 점 생성
-    #                 self.dots.append(Dot(x, y))
-    #             elif self.layout[row][col] == 3:
-    #                 # 파워 펠릿 생성
-    #                 self.power_pellets.append(PowerPellet(x, y))
-    
-    # def draw(self, screen):
-    #     """미로 그리기"""
-    #     # TODO: 벽, 점, 파워펠릿 그리기
-    #     # 벽 그리기
-    #     for wall in self.walls:
-    #         pygame.draw.rect(screen, BLUE, wall)
-        
-    #     # 점 그리기
-    #     for dot in self.dots:
-    #         dot.draw(screen)
-        
-    #     # 파워 펠릿 그리기
-    #     for pellet in self.power_pellets:
-    #         pellet.draw(screen)
-    
-    # def is_wall(self, x, y):
-    #     """주어진 위치가 벽인지 확인"""
-    #     # TODO: 충돌 검사 구현
-    #     pass

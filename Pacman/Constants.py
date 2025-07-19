@@ -1,5 +1,7 @@
 from enum import Enum
 
+# 모든 상수값 저장해두는 장소 내 입맞데로 몇개 수정함
+
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 FPS = 120
@@ -18,6 +20,9 @@ RED = (255, 0, 0)
 PINK = (255, 182, 193)
 CYAN = (0, 255, 255)
 ORANGE = (255, 165, 0)
+
+GRAY = (200, 200, 200)
+DARK_GRAY = (100, 100, 100)
 
 class Direction(Enum):
     """방향을 나타내는 열거형 클래스"""

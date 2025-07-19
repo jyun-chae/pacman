@@ -18,7 +18,7 @@ class Dot(GameObject):
     def update(self):
         pass
     
-    def draw(self, screen, i, j, ygap, xgap):
+    def draw(self, screen, i, j, ygap, xgap):   # index 기반으로 출력
         """점 그리기"""
         self.x = j*CELL_SIZE + xgap
         self.y = i*CELL_SIZE + ygap
@@ -35,7 +35,7 @@ class PowerPellet(Dot):
         super().__init__(x, y)
         self.points = 3
     
-    def draw(self, screen, i, j, ygap, xgap):
+    def draw(self, screen, i, j, ygap, xgap):   # index 기반으로 출력
         """파워 펠릿 그리기"""
         self.x = j*CELL_SIZE + xgap
         self.y = i*CELL_SIZE + ygap
